@@ -22,6 +22,9 @@ biodiversity feature (e.g. species). \strong{Has to be in binary format!}}
 \item{outfile}{A writeable \code{\link{character}} of where the output should be written to. If missing, the the function will return
 a \code{\link{SpatRaster}} or \code{\link{stars}} object respectively.}
 }
+\value{
+Either a \code{\link{SpatRaster}} or temporal \code{\link{stars}} object or nothing if outputs are written directly to drive.
+}
 \description{
 This function applies an area-of-habitat (AOH) correction to a provided single time step or multiple step range estimate
 (binary format). This thus assumes that species-habitat relations remain stable also in future conditions within a

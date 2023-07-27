@@ -17,6 +17,7 @@
 #' @param condition A [`SpatRaster`] or temporal [`stars`] object that provides a habitat condition layer. Can be missing.
 #' @param outfile A writeable [`character`] of where the output should be written to. If missing, the the function will return
 #' a [`SpatRaster`] or [`stars`] object respectively.
+#' @returns Either a [`SpatRaster`] or temporal [`stars`] object or nothing if outputs are written directly to drive.
 #' @author Martin Jung
 #' @keywords fraction
 #' @name insights_fraction
@@ -39,10 +40,46 @@ methods::setMethod(
   "insights_fraction",
   methods::signature(range = "SpatRaster", lu = "SpatRaster"),
   function(range, lu, elev, condition, outfile = NULL) {
-    assertthat::assert_that(any( class(obj) %in% getOption('ibis.engines') ),
-                            is.character(method),
-                            is.null(value) || is.numeric(value),
-                            is.character(format)
+    assertthat::assert_that(
+      is.Raster(range),
+      is.Raster(lu),
+      missing(elev) || is.Raster(elev),
+      missing(condition) || is.Raster(condition),
+      is.null(outfile) || is.character(outfile)
     )
+    # --- #
+    # Check inputs
+    if(is.Raster(range)){
+      rr <- terra::global(range,"range",na.rm=TRUE)
+      assertthat::assert_that(all(rr[["min"]]>=0 ),
+                              all(rr[["min"]]<=1 ),
+                              length(terra::unique(range)[,1]) <=2,
+                              msg = "Input range has to be in binary format!"
+                              )
+    } else if(inherits(range, "stars")){
+      stop("Not yet implemented!")
+    }
+
+    # Check output file if needed
+    if(!is.null(outfile)){
+      assertthat::assert_that(dir.exists(dirname(outfile)),
+                              msg = "Output file directory does not exist!")
+      # Correct output file name depending on type
+      if(is.Raster(range) && tolower(tools::file_ext(outfile))!="tif"){
+        outfile <- paste0(outfile, ".tif")
+      } else if(inherits(range, "stars") && tolower(tools::file_ext(outfile))!="nc"){
+        outfile <- paste0(outfile, ".nc")
+      }
+    }
+    # --- #
+
+    # --- #
+    # Write or return outputs
+    if(is.null(outfile)){
+      return(out)
+    } else {
+      terra::writeRaster(out, outfile, overwrite = TRUE)
+      invisible()
+    }
   }
 )

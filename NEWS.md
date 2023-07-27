@@ -1,3 +1,3 @@
 # InSiGHTS 0.1
 
-* Initial upload
+* Initial upload and basic functions

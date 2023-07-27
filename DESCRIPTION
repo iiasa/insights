@@ -1,4 +1,4 @@
-Package: InSiGHTS
+Package: insights
 Title: Implementation of the InSiGHTS framework
 Version: 0.1
 Authors@R: 
@@ -19,3 +19,9 @@ Imports:
 Remotes: 
     iiasa/ibis.iSDM,
     prioritizr/aoh
+Depends: 
+    R (>= 2.10)
+LazyData: true
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

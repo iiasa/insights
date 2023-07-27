@@ -18,8 +18,8 @@ to obtain the suitable habitat for each time steps. The InSiGHTS Index
 of Habitat Availability can then be defined for any given species $s$
 and timestep $t$ as:
 
-\$ Insigts\_{s,t} = \$, where $t_{ref}$ indicates a reference or
-starting year.
+$Insights_{s,t} = \frac{AOH_{s,t} - AOH_{s, t_{ref}}}{AOH_{s, t_{ref}}}$,
+where $t_{ref}$ indicates a reference or starting year.
 
 More information on the InSiGHTS framework can be found in [Rondini and
 Visconti 2015](https://doi.org/10.1111/cobi.12532), [Visconti et
