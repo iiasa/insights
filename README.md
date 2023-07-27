@@ -73,7 +73,7 @@ InSiGHTS on it. Note that this also works on any other range estimate
 provided directly as a SpatRaster.
 
 ``` r
-# Train a simple SDM
+# Load test data from ibis.iSDM package
 background <- terra::rast(system.file('extdata/europegrid_50km.tif', package='ibis.iSDM',mustWork = TRUE))
 virtual_points <- sf::st_read(system.file('extdata/input_data.gpkg', package='ibis.iSDM',mustWork = TRUE),'points',quiet = TRUE)
 ll <- list.files(system.file('extdata/predictors',package = 'ibis.iSDM',mustWork = TRUE),full.names = T)
@@ -103,14 +103,14 @@ plot(out, col = c("grey90", "#FDE8A9", "#FBD35C", "#D1C34A", "#8EB65C",
      main = "Suitable habitat")
 ```
 
-<img src="man/figures/README-Train-1.png" width="100%" />
+<img src="man/figures/README-Train a simple SDM-1.png" width="100%" />
 
 ``` r
 
 # Summarize
 insights_summary(out)
 #>   time suitability unit
-#> 1   NA    80327.31  km2
+#> 1   NA    81641.67  km2
 ```
 
 Of course it is also possible to directly supply a multi-dimensional

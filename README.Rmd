@@ -59,8 +59,8 @@ Now we use the **ibis.iSDM** package to train a simple SDM and apply the InSiGHT
 Note that this also works on any other range estimate provided directly as a
 SpatRaster.
 
-```{r Train, echo=TRUE, message=FALSE}
-# Train a simple SDM
+```{r Train a simple SDM, echo=TRUE, message=FALSE}
+# Load test data from ibis.iSDM package
 background <- terra::rast(system.file('extdata/europegrid_50km.tif', package='ibis.iSDM',mustWork = TRUE))
 virtual_points <- sf::st_read(system.file('extdata/input_data.gpkg', package='ibis.iSDM',mustWork = TRUE),'points',quiet = TRUE)
 ll <- list.files(system.file('extdata/predictors',package = 'ibis.iSDM',mustWork = TRUE),full.names = T)
