@@ -18,7 +18,8 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/iiasa/insights/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/iiasa/insights/actions/workflows/R-CMD-check.yaml)
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-<!-- badges: end -->
+[![License: CC BY 4.0](https://img.shields.io/badge/license-CC BY 4.0-blue.svg)](https://creativecommons.org/licenses/by/4.0/)
+[![Codecov Status](https://codecov.io/gh/iiasa/insights/branch/main/graph/badge.svg)](https://app.codecov.io/gh/iiasa/insights?branch=main)<!-- badges: end -->
 
 This R-package provides a IIASA implementation of the InSiGHTS Index of Habitat Availability. The index
 captures the amount of suitable habitat within the current or a future range of a species. This range can be taken either from existing range maps (e.g. IUCN) or from estimates obtained through species distribution models.

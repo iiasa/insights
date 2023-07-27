@@ -4,7 +4,14 @@
 # Implementation of the InSiGHTS framework
 
 <!-- badges: start -->
-<!-- badges: end -->
+
+[![R-CMD-check](https://github.com/iiasa/insights/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/iiasa/insights/actions/workflows/R-CMD-check.yaml)
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![License: CC BY
+4.0](https://img.shields.io/badge/license-CC%20BY%204.0-blue.svg)](https://creativecommons.org/licenses/by/4.0/)
+[![Codecov
+Status](https://codecov.io/gh/iiasa/insights/branch/main/graph/badge.svg)](https://app.codecov.io/gh/iiasa/insights?branch=main)<!-- badges: end -->
 
 This R-package provides a IIASA implementation of the InSiGHTS Index of
 Habitat Availability. The index captures the amount of suitable habitat
@@ -103,7 +110,7 @@ plot(out, col = c("grey90", "#FDE8A9", "#FBD35C", "#D1C34A", "#8EB65C",
 # Summarize
 insights_summary(out)
 #>   time suitability unit
-#> 1   NA    81447.54  km2
+#> 1   NA    80327.31  km2
 ```
 
 Of course it is also possible to directly supply a multi-dimensional
