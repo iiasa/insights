@@ -7,10 +7,13 @@
 insights_fraction(range, lu, other, outfile = NULL)
 
 \S4method{insights_fraction}{SpatRaster,SpatRaster,SpatRaster,character}(range,lu,other,outfile)
+
+\S4method{insights_fraction}{ANY,SpatRaster,SpatRaster,character}(range,lu,other,outfile)
 }
 \arguments{
 \item{range}{A \code{\link{SpatRaster}} or temporal \code{\link{stars}} object describing the estimated distribution of a
-biodiversity feature (e.g. species). \strong{Has to be in binary format!}}
+biodiversity feature (e.g. species). \strong{Has to be in binary format!}
+Alternatively a \code{DistributionModel} fitted with \code{ibis.iSDM} package can be supplied.}
 
 \item{lu}{A \code{\link{SpatRaster}} or temporal \code{\link{stars}} object of the future land-use fractions to be applied to the range.
 \strong{Each layer has to be in units of fractions, e.g. between 0 and 1.}}

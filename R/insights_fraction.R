@@ -11,6 +11,7 @@
 #'
 #' @param range A [`SpatRaster`] or temporal [`stars`] object describing the estimated distribution of a
 #' biodiversity feature (e.g. species). **Has to be in binary format!**
+#' Alternatively a \code{DistributionModel} fitted with \code{ibis.iSDM} package can be supplied.
 #' @param lu A [`SpatRaster`] or temporal [`stars`] object of the future land-use fractions to be applied to the range.
 #' **Each layer has to be in units of fractions, e.g. between 0 and 1.**
 #' @param other Any other [`SpatRaster`] or temporal [`stars`] objects that describe suitable conditions for the species.
@@ -151,6 +152,56 @@ methods::setMethod(
     } else {
       terra::writeRaster(out, outfile, overwrite = TRUE)
       invisible()
+    }
+  }
+)
+
+#### Implementation for ibis.iSDM predictions ####
+#' @name insights_fraction
+#' @rdname insights_fraction
+#' @usage \S4method{insights_fraction}{ANY,SpatRaster,SpatRaster,character}(range,lu,other,outfile)
+methods::setMethod(
+  "insights_fraction",
+  methods::signature(range = "ANY", lu = "SpatRaster"),
+  function(range, lu, other, outfile = NULL) {
+    assertthat::assert_that(
+      inherits(range, "DistributionModel"),
+      ibis.iSDM::is.Raster(lu),
+      missing(other) || ibis.iSDM::is.Raster(other),
+      is.null(outfile) || is.character(outfile)
+    )
+
+    # Check that layer has predictions
+    assertthat::assert_that(
+      length( range$show_rasters() ) >0,
+      msg = "Fitted model contains no predictions!"
+    )
+
+    # Check that fitted object has threshold
+    assertthat::assert_that(
+      !ibis.iSDM::is.Waiver(range$get_thresholdvalue()),
+      is.numeric(range$get_thresholdvalue()),
+      msg = "No thresholded raster was found!"
+    )
+
+    # Get thresholded raster and recall with SpatRaster object
+    if( any(grep('threshold', range$show_rasters())) ){
+      tr_lyr <- grep('threshold', range$show_rasters(),value = TRUE)
+      if(length(tr_lyr)>1) warning("There appear to be multiple thresholded layers. Using the first one.")
+      threshold <- range$get_data(tr_lyr[1])
+      # Get mean layer if there are multiple
+      if( grep("mean", names(threshold),value = TRUE ) != ""){
+        threshold <- threshold[[grep("mean", names(threshold),value = TRUE )]]
+      }
+
+      # Now call again insights
+      out <- insights_fraction(range = threshold,
+                               lu = lu,
+                               other = other,
+                               outfile = outfile)
+      return(out)
+    } else {
+      stop("No thresholded raster was found!")
     }
   }
 )
