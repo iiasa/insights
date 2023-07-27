@@ -33,7 +33,7 @@ provided climatic niche.
 
 It is assumed that the land-use layers come in fractional units, so are ranging from \code{0} to \code{1}.
 Optionally also a elevation (\code{elev}) layer and habitat condition (\code{condition}) can be provided to support refinements
-by relevational range or habitat condition.
+by elevational range or habitat condition.
 }
 \references{
 \itemize{

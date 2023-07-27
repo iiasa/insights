@@ -7,7 +7,7 @@
 #'
 #' It is assumed that the land-use layers come in fractional units, so are ranging from \code{0} to \code{1}.
 #' Optionally also a elevation (\code{elev}) layer and habitat condition (\code{condition}) can be provided to support refinements
-#' by relevational range or habitat condition.
+#' by elevational range or habitat condition.
 #'
 #' @param range A [`SpatRaster`] or temporal [`stars`] object describing the estimated distribution of a
 #' biodiversity feature (e.g. species). **Has to be in binary format!**
@@ -19,6 +19,7 @@
 #' a [`SpatRaster`] or [`stars`] object respectively.
 #' @returns Either a [`SpatRaster`] or temporal [`stars`] object or nothing if outputs are written directly to drive.
 #' @author Martin Jung
+#' @importClassesFrom terra SpatRaster
 #' @references
 #' * Rondinini, Carlo, and Piero Visconti. "Scenarios of large mammal loss in Europe for the 21st century." Conservation Biology 29, no. 4 (2015): 1028-1036.
 #' * Visconti, Piero, Michel Bakkenes, Daniele Baisero, Thomas Brooks, Stuart HM Butchart, Lucas Joppa, Rob Alkemade et al. "Projecting global biodiversity indicators under future development scenarios." Conservation Letters 9, no. 1 (2016): 5-13.
