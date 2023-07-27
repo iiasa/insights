@@ -1,29 +1,33 @@
-# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Workflow derived from https://github.com/r-lib/actions/tree/v2-branch/examples
 # Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
+    branches: [main]
+  workflow_dispatch:
 
-name: R-CMD-check
+name: r-cmd-check
 
 jobs:
-  R-CMD-check:
+  r-cmd-check:
+    if: "!contains(github.event.commits[0].message, '[skip-ci]')"
     runs-on: ${{ matrix.config.os }}
-
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
 
     strategy:
       fail-fast: false
       matrix:
         config:
-          - {os: macos-latest,   r: 'release'}
+          - {os: macOS-latest, r: 'release'}
           - {os: windows-latest, r: 'release'}
-          - {os: ubuntu-latest,   r: 'release'}
+          - {os: ubuntu-latest, r: 'release'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      _R_REMOTES_NO_ERRORS_FROM_WARNINGS_: true
+      _R_CHECK_TIMINGS_: 10
       R_KEEP_PKG_SOURCE: yes
 
     steps:
@@ -37,11 +41,50 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
+      - name: Install gdal and igraph dependencies on Linux (gdal)
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get -y install \
+            libudunits2-dev libgdal-dev libgeos-dev libproj-dev libglpk-dev
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            brew install --cask xquartz
+            brew install pkg-config
+            brew install gdal
+            brew install proj
+            brew install geos
+          else
+            echo "Nothing to do"
+          fi
+        shell: bash
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          dependencies: '"all"'
+          extra-packages: |
+            any::rcmdcheck,
+            any::glmnet,
+            any::glmnetUtils,
+            any::pdp,
+            stan-dev/cmdstanr,
+            any::igraph,
+            any::xgboost,
+            any::dbarts,
+            any::mboost,
+            any::inlabru,
+            any::BoomSpikeSlab
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
+        env:
+          _R_CHECK_CRAN_INCOMING_REMOTE_: false
         with:
+          args: 'c("--no-manual", "--as-cran", "--no-build-vignettes")'
+          error-on: '"error"'
           upload-snapshots: true
+
+      - name: Upload check results
+        if: failure()
+        uses: actions/upload-artifact@main
+        with:
+          name: ${{ runner.os }}-r${{ matrix.config.r }}-results
+          path: check
