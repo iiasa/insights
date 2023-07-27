@@ -13,7 +13,9 @@ Imports:
     sf,
     terra,
     ibis.iSDM,
-    aoh
+    aoh,
+    stars,
+    assertthat
 Remotes: 
     iiasa/ibis.iSDM,
     prioritizr/aoh

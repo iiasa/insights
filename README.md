@@ -12,6 +12,15 @@ within the current or a future range of a species. This range can be
 taken either from existing range maps (e.g. IUCN) or from estimates
 obtained through species distribution models.
 
+In it’s basic configuration, the InSiGHTS framework combines the
+climatic suitability from a SDM with a area of habitat (AOH) refinement
+to obtain the suitable habitat for each time steps. The InSiGHTS Index
+of Habitat Availability can then be defined for any given species $s$
+and timestep $t$ as:
+
+\$ Insigts\_{s,t} = \$, where $t_{ref}$ indicates a reference or
+starting year.
+
 More information on the InSiGHTS framework can be found in [Rondini and
 Visconti 2015](https://doi.org/10.1111/cobi.12532), [Visconti et
 al. 2016](https://doi.org/10.1111/conl.12159) or [Baisero et
@@ -56,8 +65,8 @@ C. Rondinini and P. Visconti, Scenarios of large mammal loss in Europe
 for the 21st century Conserv. Biol., 29 (2015), pp. 1028-1036
 [DOI](https://doi.org/10.1111/cobi.12532)
 
-## Acknowledgement <a href="https://iiasa.ac.at"><img src="vignettes/figures/IIASA_PNG_logo_blue.png" alt="IIASA" align="right" width="300"/></a>
+## Acknowledgement <a href="https://iiasa.ac.at"><img src="man/figures/IIASA_PNG_logo_blue.png" alt="IIASA" align="right" width="300"/></a>
 
-**ibis.iSDM** is developed and maintained by the Biodiversity, Ecology
+**InSiGHTS** is developed and maintained by the Biodiversity, Ecology
 and Conservation group at the International Institute for Applied
 Systems Analysis (IIASA), Austria.
