@@ -13,13 +13,14 @@
 #' biodiversity feature (e.g. species). **Has to be in binary format!**
 #' @param lu A [`SpatRaster`] or temporal [`stars`] object of the future land-use fractions to be applied to the range.
 #' **Each layer has to be in units of fractions, e.g. between 0 and 1.**
-#' @param elev A [`SpatRaster`] or temporal [`stars`] object that provides an elevational layer. Can be missing.
-#' @param condition A [`SpatRaster`] or temporal [`stars`] object that provides a habitat condition layer. Can be missing.
+#' @param other Any other [`SpatRaster`] or temporal [`stars`] objects that describe suitable conditions for the species.
 #' @param outfile A writeable [`character`] of where the output should be written to. If missing, the the function will return
 #' a [`SpatRaster`] or [`stars`] object respectively.
 #' @returns Either a [`SpatRaster`] or temporal [`stars`] object or nothing if outputs are written directly to drive.
 #' @author Martin Jung
-#' @keywords fraction
+#' @references
+#' * Rondinini, Carlo, and Piero Visconti. "Scenarios of large mammal loss in Europe for the 21st century." Conservation Biology 29, no. 4 (2015): 1028-1036.
+#' * Visconti, Piero, Michel Bakkenes, Daniele Baisero, Thomas Brooks, Stuart HM Butchart, Lucas Joppa, Rob Alkemade et al. "Projecting global biodiversity indicators under future development scenarios." Conservation Letters 9, no. 1 (2016): 5-13.
 #' @name insights_fraction
 #' @export
 NULL
@@ -31,33 +32,87 @@ NULL
 methods::setGeneric(
   "insights_fraction",
   signature = methods::signature("range", "lu"),
-  function(range, lu, elev, condition, outfile = NULL) standardGeneric("insights_fraction"))
+  function(range, lu, other, outfile = NULL) standardGeneric("insights_fraction"))
 
 #' @name insights_fraction
 #' @rdname insights_fraction
-#' @usage \S4method{insights_fraction}{SpatRaster,SpatRaster,SpatRaster,SpatRaster,character}(range,lu,elev,condition,outfile)
+#' @usage \S4method{insights_fraction}{SpatRaster,SpatRaster,SpatRaster,character}(range,lu,other,outfile)
 methods::setMethod(
   "insights_fraction",
   methods::signature(range = "SpatRaster", lu = "SpatRaster"),
-  function(range, lu, elev, condition, outfile = NULL) {
+  function(range, lu, other, outfile = NULL) {
     assertthat::assert_that(
-      is.Raster(range),
-      is.Raster(lu),
-      missing(elev) || is.Raster(elev),
-      missing(condition) || is.Raster(condition),
+      ibis.iSDM::is.Raster(range),
+      ibis.iSDM::is.Raster(lu),
+      missing(other) || ibis.iSDM::is.Raster(other),
       is.null(outfile) || is.character(outfile)
     )
     # --- #
     # Check inputs
-    if(is.Raster(range)){
-      rr <- terra::global(range,"range",na.rm=TRUE)
+    rr <- terra::global(range,"range",na.rm=TRUE)
+    assertthat::assert_that(all(rr[["min"]]>=0 ),
+                            all(rr[["max"]]<=1 ),
+                            all(apply(terra::unique(range), 2, function(z) length(which(!is.nan(unique(z))))) <= 2),
+                            msg = "Input range has to be in binary format!"
+                            )
+    rm(rr)
+    assertthat::assert_that(
+      !is.na(terra::crs(range)),
+      msg = "Range has unspecified projection!"
+    )
+
+    # Check raster stack
+    rr <- terra::global(lu,"range",na.rm=TRUE)
+    assertthat::assert_that(all(rr[["min"]]>=0 ),
+                            all(rr[["max"]]<=1 ),
+                            msg = "Supply fractional land-use layers!"
+    )
+    rm(rr)
+
+    # Ensure that range and lu are comparable
+    if(ibis.iSDM::is.Raster(lu) && ibis.iSDM::is.Raster(range)){
+      if(!(terra::same.crs(range, lu) && terra::compareGeom(range, lu, stopOnError = FALSE))){
+        if(!terra::same.crs(range, lu)){
+          ibis.iSDM::myLog("Preparation", "yellow", "Reprojecting land-use layer to range crs.")
+          lu <- terra::project(lu, terra::crs(range))
+        }
+        if(!terra::compareGeom(range, lu, stopOnError = FALSE)){
+          ibis.iSDM::myLog("Preparation", "yellow", "Cropping and resampling land-use layer(s) to range.")
+          lu <- terra::crop(lu, range)
+          lu <- terra::resample(lu, range, method = "average", threads = TRUE)
+        }
+      }
+      assertthat::assert_that(ibis.iSDM::is.Raster(lu),
+                              ibis.iSDM::is.Raster(range))
+    }
+
+    # Align others if set
+    if(!missing(other)){
+      assertthat::assert_that(ibis.iSDM::is.Raster(other),
+                              msg = "other provided layers need to be in SpatRaster format.")
+      rr <- terra::global(other,"range",na.rm=TRUE)
       assertthat::assert_that(all(rr[["min"]]>=0 ),
-                              all(rr[["min"]]<=1 ),
-                              length(terra::unique(range)[,1]) <=2,
-                              msg = "Input range has to be in binary format!"
-                              )
-    } else if(inherits(range, "stars")){
-      stop("Not yet implemented!")
+                              all(rr[["max"]]<=1 ),
+                              msg = "Supply fractional other layers!"
+      )
+
+      if(!(terra::same.crs(range, other) && terra::compareGeom(range, other, stopOnError = FALSE))){
+        if(!terra::same.crs(range, other)){
+          ibis.iSDM::myLog("Preparation", "yellow", "Reprojecting other layers to range crs.")
+          other <- terra::project(other, terra::crs(range))
+        }
+        if(!terra::compareGeom(range, other, stopOnError = FALSE)){
+          ibis.iSDM::myLog("Preparation", "yellow", "Cropping and resampling other layer(s) to range.")
+          other <- terra::crop(other, range)
+          other <- terra::resample(other, range, method = "average", threads = TRUE)
+        }
+      }
+      # Aggregating other layers to a single layer
+      if(terra::nlyr(other)>1){
+        other <- terra::app(other, 'sum', na.rm = TRUE)
+      }
+      assertthat::assert_that(ibis.iSDM::is.Raster(other),
+                              terra::nlyr(other)==1)
     }
 
     # Check output file if needed
@@ -72,6 +127,22 @@ methods::setMethod(
       }
     }
     # --- #
+    # Now apply the share per lu
+    out <- range
+    # Now sum land use shares
+    lus <- terra::app(lu, 'sum', na.rm = TRUE)
+    out <- out * lus
+    if(!missing(other)) out <- out * other
+    if(terra::nlyr(range)>1){
+      # Check if time dimension is there
+      if(all(!is.na(terra::time(out)))){
+        names(out) <- paste0("insights_suitability","__",as.character(terra::time(out)))
+      } else {
+        names(out) <- paste0("insights_suitability","__",1:terra::nlyr(out))
+      }
+    } else {
+      names(out) <- "insights_suitability"
+    }
 
     # --- #
     # Write or return outputs

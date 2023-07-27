@@ -4,9 +4,9 @@
 \alias{insights_fraction}
 \title{Apply InSiGHTS with fractional land use data}
 \usage{
-insights_fraction(range, lu, elev, condition, outfile = NULL)
+insights_fraction(range, lu, other, outfile = NULL)
 
-\S4method{insights_fraction}{SpatRaster,SpatRaster,SpatRaster,SpatRaster,character}(range,lu,elev,condition,outfile)
+\S4method{insights_fraction}{SpatRaster,SpatRaster,SpatRaster,character}(range,lu,other,outfile)
 }
 \arguments{
 \item{range}{A \code{\link{SpatRaster}} or temporal \code{\link{stars}} object describing the estimated distribution of a
@@ -15,9 +15,7 @@ biodiversity feature (e.g. species). \strong{Has to be in binary format!}}
 \item{lu}{A \code{\link{SpatRaster}} or temporal \code{\link{stars}} object of the future land-use fractions to be applied to the range.
 \strong{Each layer has to be in units of fractions, e.g. between 0 and 1.}}
 
-\item{elev}{A \code{\link{SpatRaster}} or temporal \code{\link{stars}} object that provides an elevational layer. Can be missing.}
-
-\item{condition}{A \code{\link{SpatRaster}} or temporal \code{\link{stars}} object that provides a habitat condition layer. Can be missing.}
+\item{other}{Any other \code{\link{SpatRaster}} or temporal \code{\link{stars}} objects that describe suitable conditions for the species.}
 
 \item{outfile}{A writeable \code{\link{character}} of where the output should be written to. If missing, the the function will return
 a \code{\link{SpatRaster}} or \code{\link{stars}} object respectively.}
@@ -34,7 +32,12 @@ It is assumed that the land-use layers come in fractional units, so are ranging 
 Optionally also a elevation (\code{elev}) layer and habitat condition (\code{condition}) can be provided to support refinements
 by relevational range or habitat condition.
 }
+\references{
+\itemize{
+\item Rondinini, Carlo, and Piero Visconti. "Scenarios of large mammal loss in Europe for the 21st century." Conservation Biology 29, no. 4 (2015): 1028-1036.
+\item Visconti, Piero, Michel Bakkenes, Daniele Baisero, Thomas Brooks, Stuart HM Butchart, Lucas Joppa, Rob Alkemade et al. "Projecting global biodiversity indicators under future development scenarios." Conservation Letters 9, no. 1 (2016): 5-13.
+}
+}
 \author{
 Martin Jung
 }
-\keyword{fraction}

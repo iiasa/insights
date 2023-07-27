@@ -12,6 +12,8 @@ within the current or a future range of a species. This range can be
 taken either from existing range maps (e.g. IUCN) or from estimates
 obtained through species distribution models.
 
+<img src="man/figures/insights_schematic.png" alt="Schematic" align="right" width="300"/>
+
 In it’s basic configuration, the InSiGHTS framework combines the
 climatic suitability from a SDM with a area of habitat (AOH) refinement
 to obtain the suitable habitat for each time steps. The InSiGHTS Index
@@ -42,18 +44,15 @@ You can install the development version of Insights from
 devtools::install_github("iiasa/insights")
 ```
 
-The package depends on the [aoh](https://prioritizr.github.io/aoh/) and
-the [ibis.iSDM](https://iiasa.github.io/ibis.iSDM/) package, both of
-which are currently only available via github.
+The package depends on the
+[ibis.iSDM](https://iiasa.github.io/ibis.iSDM/) package, which is
+currently only available via github.
 
 ## Basic usage and examples
 
-*To be done*
+To be done! Basic InSiGHTS application and summary
 
-Note that the package is mostly for internal use and full
-reproducibility is not the primary goal of this package.
-
-**Citations:**
+## Citations
 
 P. Visconti, M. Bakkenes, D. Baisero, T. Brooks, S.H.M. Butchart, L.
 Joppa, R. Alkemade, M. Di Marco, L. Santini, M. Hoffmann, C. Rondinini

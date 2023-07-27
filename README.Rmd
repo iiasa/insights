@@ -19,11 +19,11 @@ knitr::opts_chunk$set(
 <!-- badges: end -->
 
 This R-package provides a IIASA implementation of the InSiGHTS Index of Habitat Availability. The index
-captures the amount of suitable habitat within the current or a future range of a species. This range can be taken
-either from existing range maps (e.g. IUCN) or from estimates obtained through species distribution models.
+captures the amount of suitable habitat within the current or a future range of a species. This range can be taken either from existing range maps (e.g. IUCN) or from estimates obtained through species distribution models.
 
-In it's basic configuration, the InSiGHTS framework combines the climatic suitability from a SDM with a area of habitat (AOH) 
-refinement to obtain the suitable habitat for each time steps.
+<img src="man/figures/insights_schematic.png" alt="Schematic" align="right" width="300"/>
+
+In it's basic configuration, the InSiGHTS framework combines the climatic suitability from a SDM with a area of habitat (AOH) refinement to obtain the suitable habitat for each time steps.
 The InSiGHTS Index of Habitat Availability can then be defined for any given species $s$ and timestep $t$ as:
 
 $Insights_{s,t} = \frac{AOH_{s,t} - AOH_{s, t_{ref}}}{AOH_{s, t_{ref}}}$, where $t_{ref}$ indicates a reference or starting year.
@@ -40,16 +40,23 @@ You can install the development version of Insights from [GitHub](https://github
 # install.packages("devtools")
 devtools::install_github("iiasa/insights")
 ```
-The package depends on the [aoh](https://prioritizr.github.io/aoh/) and the [ibis.iSDM](https://iiasa.github.io/ibis.iSDM/) package, both
-of which are currently only available via github.
+The package depends on the [ibis.iSDM](https://iiasa.github.io/ibis.iSDM/) package, which is currently only available via github.
 
 ## Basic usage and examples
 
-*To be done*
+```{r Load packages, echo=FALSE,message=FALSE}
+# Basic packages for use
+library(ibis.iSDM)
+library(glmnet)
+library(terra)
+```
 
-Note that the package is mostly for internal use and full reproducibility is not the primary goal of this package.
+To be done!
+Basic InSiGHTS application and summary
 
-**Citations:**
+
+
+## Citations
 
 P. Visconti, M. Bakkenes, D. Baisero, T. Brooks, S.H.M. Butchart, L. Joppa, R. Alkemade, M. Di Marco, L. Santini, M. Hoffmann, C. Rondinini
 Projecting global biodiversity indicators under future development scenarios Conserv. Lett., 9 (2016), pp. 5-13 [DOI](https://doi.org/10.1111/conl.12159)
