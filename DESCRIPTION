@@ -1,6 +1,7 @@
 Package: insights
-Title: Implementation of the InSiGHTS framework
-Version: 0.1
+Title: An R implementation of the InSiGHTS framework
+Version: 0.2
+Year: 2023
 Authors@R: 
     person("Martin", "Jung", , "jung@iiasa.ac.at", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-7569-1390"))
@@ -15,7 +16,8 @@ Imports:
     ibis.iSDM,
     stars,
     assertthat,
-    tibble
+    tibble,
+    dplyr
 Remotes: 
     iiasa/ibis.iSDM
 Depends: 

@@ -142,3 +142,62 @@ test_that('Do InSiGHTS on multiple layers and summarize', {
   expect_no_error(insights_summary(range_ts))
 }
 )
+
+# Multiple time steps
+# This test ensures that the refinement works even when multiple layers are supplied.
+test_that('Do InSiGHTS on stars object', {
+
+  suppressWarnings( requireNamespace("terra", quietly = TRUE) )
+  suppressWarnings( requireNamespace("ibis.iSDM", quietly = TRUE) )
+  suppressWarnings( requireNamespace("stars", quietly = TRUE) )
+
+  # Load files
+  range <- terra::rast(system.file('extdata/example_range.tif', package='insights',mustWork = TRUE))
+
+  # Load present and future predictors
+  ll <- list.files(system.file('extdata/predictors_presfuture/',package = 'ibis.iSDM',mustWork = TRUE),full.names = T)
+  ll <- ll[grep("primf|primn",ll)]
+  # Load the same files future ones
+  suppressWarnings(
+    pred_future <- stars::read_stars(ll) |> stars:::slice.stars('Time', seq(1, 86, by = 10))
+  )
+  sf::st_crs(pred_future) <- sf::st_crs(4326)
+  names(pred_future) <- tools::file_path_sans_ext(basename(ll))
+
+  # Convert to fractions
+  pred_future <- ibis.iSDM::predictor_transform(pred_future, option = "norm") |>
+    round(digits = 2)
+
+  # Load an additional layer to supply for
+  dem <- terra::rast(system.file('extdata/DEM.tif', package='insights',mustWork = TRUE))
+
+  # Input checks
+  expect_true(inherits(pred_future, "stars"))
+
+  # Do basic clipping
+  expect_no_error(
+    suppressMessages(
+      out <- insights_fraction(range = range,
+                               lu = pred_future)
+    )
+  )
+  expect_true(inherits(out, "stars"))
+  expect_length(out, 1)
+  expect_length(stars::st_get_dimension_values(out, "time"), 9)
+
+  # Now summarize
+  df <- insights_summary(out)
+  expect_s3_class(df, "data.frame")
+  expect_equal(nrow(df), 9)
+  df <- insights_summary(out,toArea = FALSE)
+  expect_s3_class(df, "data.frame")
+  df <- insights_summary(out,toArea = FALSE, relative = FALSE)
+  expect_s3_class(df, "data.frame")
+  expect_equal(nrow(df), 9)
+
+  # Directly on the suitable area should also work
+  # if those are single layers
+  o <- ibis.iSDM:::st_reduce(obj = pred_future, names(pred_future),"suitability",fun = "sum")
+  expect_no_error(insights_summary(o))
+}
+)

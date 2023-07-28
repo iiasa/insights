@@ -30,8 +30,9 @@ and timestep $t$ as:
 $Insights_{s,t} = \frac{AOH_{s,t} - AOH_{s, t_{ref}}}{AOH_{s, t_{ref}}}$,
 where $t_{ref}$ indicates a reference or starting year.
 
-More information on the InSiGHTS framework can be found in [Rondini and
-Visconti 2015](https://doi.org/10.1111/cobi.12532), [Visconti et
+More information on the InSiGHTS framework can be found in [Pearson et
+al. 2004](https://doi.org/10.1046/j.1466-822X.2003.00042.x), [Rondini
+and Visconti 2015](https://doi.org/10.1111/cobi.12532), [Visconti et
 al. 2016](https://doi.org/10.1111/conl.12159) or [Baisero et
 al. (2021)](https://doi.org/10.1016/j.oneear.2020.05.015).
 
@@ -69,14 +70,19 @@ library(terra)
 ```
 
 Now we use the **ibis.iSDM** package to train a simple SDM and apply the
-InSiGHTS on it. Note that this also works on any other range estimate
-provided directly as a SpatRaster.
+InSiGHTS on it. The assumption here is that the SDMs are created using
+climatic variables (temperature, precipitation, etc.) only so as to
+create a climatic envelope model. The refinement with time series of
+land-use is done posthoc on the resulting prediction. Note that this
+also works on any other range estimate provided directly as a
+SpatRaster.
 
 ``` r
 # Load test data from ibis.iSDM package
 background <- terra::rast(system.file('extdata/europegrid_50km.tif', package='ibis.iSDM',mustWork = TRUE))
 virtual_points <- sf::st_read(system.file('extdata/input_data.gpkg', package='ibis.iSDM',mustWork = TRUE),'points',quiet = TRUE)
 ll <- list.files(system.file('extdata/predictors',package = 'ibis.iSDM',mustWork = TRUE),full.names = T)
+ll <- ll[grep("CLC",ll, invert = TRUE)]# Use only climatic predictors
 predictors <- terra::rast(ll);names(predictors) <- tools::file_path_sans_ext(basename(ll))
 
 # Now train a small little model
@@ -110,7 +116,7 @@ plot(out, col = c("grey90", "#FDE8A9", "#FBD35C", "#D1C34A", "#8EB65C",
 # Summarize
 insights_summary(out)
 #>   time suitability unit
-#> 1   NA    81641.67  km2
+#> 1   NA    123158.4  km2
 ```
 
 Of course it is also possible to directly supply a multi-dimensional
@@ -120,6 +126,9 @@ scenario functionalities (see example below).
 *Example to be added*
 
 ## Citations
+
+Jung M (2023). *insights: An R implementation of the InSiGHTS
+framework*. R package version 0.2.
 
 P. Visconti, M. Bakkenes, D. Baisero, T. Brooks, S.H.M. Butchart, L.
 Joppa, R. Alkemade, M. Di Marco, L. Santini, M. Hoffmann, C. Rondinini

@@ -207,3 +207,83 @@ methods::setMethod(
     }
   }
 )
+
+#' @name insights_fraction
+#' @rdname insights_fraction
+#' @usage \S4method{insights_fraction}{SpatRaster,stars,ANY,character}(range,lu,other,outfile)
+methods::setMethod(
+  "insights_fraction",
+  methods::signature(range = "SpatRaster", lu = "stars"),
+  function(range, lu, other, outfile = NULL) {
+    assertthat::assert_that(
+      ibis.iSDM::is.Raster(range),
+      inherits(lu, "stars"),
+      missing(other) || (inherits(other, "stars") || ibis.iSDM::is.Raster(other)),
+      is.null(outfile) || is.character(outfile)
+    )
+
+    # Convert if needed
+    if(!missing(other)){
+      if(inherits(other, "stars")){
+        other <- terra::rast(other)
+      }
+    }
+
+    # Correct output file extension if necessary
+    if(!is.null(outfile)){
+      assertthat::assert_that(dir.exists(dirname(outfile)),
+                              msg = "Output file directory does not exist!")
+      # Correct output file name depending on type
+      if(inherits(lu, "stars") && tolower(tools::file_ext(outfile))!="nc"){
+        outfile <- paste0(outfile, ".nc")
+      }
+    }
+
+    # Check that stars is correct
+    assertthat::assert_that(length(lu)>=1,
+                            length( stars::st_dimensions(lu) )>=3,
+                            "time" %in% names(stars::st_dimensions(lu)),
+                            msg = "No dimension with name \"time\" found in land-use time series!")
+    times <- stars::st_get_dimension_values(lu, "time")
+
+    # --- #
+    # For the processing:
+    # Aggregate all variables together
+    lu <- ibis.iSDM:::st_reduce(lu, names(lu), newname = "suitability", fun = "sum")
+
+    # Then convert each time step to a SpatRaster and pass to insights_fraction
+    proj <- terra::rast()
+    for(tt in 1:length(unique(times))){
+      # Make a slice
+      s <- lu |> stars:::slice.stars('time', tt)
+      # Convert to raster
+      s <- terra::rast(s)
+      assertthat::assert_that(terra::global(s, "max", na.rm = TRUE)[,1] <=1,
+                              msg = "Values larger than 1 found?")
+      o <- insights_fraction(range = range,
+                             lu = s,
+                             # other = other,
+                             outfile = NULL)
+      suppressWarnings(
+        proj <- c(proj, o)
+      )
+    }
+    # Finally convert to stars and rename
+    proj <- stars::st_as_stars(proj,
+                               crs = sf::st_crs(range)
+    )
+    names(proj)
+    # Reset time dimension for consistency
+    dims <- stars::st_dimensions(proj)
+    names(dims)[3] <- "time"
+    dims$time <- stars::st_dimensions(lu)[["time"]]
+    stars::st_dimensions(proj) <- dims
+
+    # Return result or write respectively
+    if(is.null(outfile)){
+      return(proj)
+    } else {
+      stars::write_stars(proj, outfile)
+    }
+  }
+)

@@ -7,6 +7,8 @@
 insights_summary(obj, toArea = TRUE, relative = TRUE)
 
 \S4method{insights_summary}{SpatRaster,logical,logical}(obj,toArea,relative)
+
+\S4method{insights_summary}{stars,logical,logical}(obj,toArea,relative)
 }
 \arguments{
 \item{obj}{A \code{\link{SpatRaster}} or temporal \code{\link{stars}} object describing with the

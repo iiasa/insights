@@ -80,3 +80,85 @@ methods::setMethod(
     return(results)
   }
 )
+
+#' @name insights_summary
+#' @rdname insights_summary
+#' @usage \S4method{insights_summary}{stars,logical,logical}(obj,toArea,relative)
+methods::setMethod(
+  "insights_summary",
+  methods::signature(obj = "stars"),
+  function(obj, toArea = TRUE, relative = TRUE) {
+    assertthat::assert_that(
+      inherits(obj, "stars"),
+      is.logical(toArea),
+      is.logical(relative)
+    )
+
+    # Basic checks on input
+    assertthat::assert_that(length(obj)==1,
+                            msg = "Multiple scenario attributes found?")
+    assertthat::assert_that(!is.na(sf::st_crs(obj)),
+                            msg = "Scenario not correctly projected.")
+
+    # --- #
+    # Get the scenario predictions and from there the thresholds
+    time <- stars::st_get_dimension_values(obj, which = 3) # Assuming band 3 is the time dimension
+
+    # Apply area correction if set
+    if(toArea){
+      # Calculate the area size in km2
+      ar <- stars:::st_area.stars(obj)
+      # Get the unit
+      ar_unit <- units::deparse_unit(ar$area)
+
+      new <- (obj |> terra::rast()) * (ar |> terra::rast())
+      if(ar_unit == "m2"){
+        new <- new / 1e6
+        ar_unit <- "km2"
+      }
+      terra::time(new) <- time
+      fun <- "sum"
+    } else {
+      new <- (obj |> terra::rast())
+      ar_unit <- "fraction"
+      terra::time(new) <- time
+      fun <- "mean"
+    }
+    assertthat::assert_that(ibis.iSDM::is.Raster(new))
+    names(new) <- rep(names(obj), terra::nlyr(new))
+
+    # Convert to the scenarios to a data.frame
+    df <- stars:::as.data.frame.stars(stars:::st_as_stars(new)) |>
+      (\(.) subset(., stats::complete.cases(.)))()
+    # Rename
+    names(df)[3:4] <- c("band", "area")
+    # --- #
+    # Now calculate from this data.frame several metrics related to the area and change in area
+    df <- df |> dplyr::group_by(x,y) |> dplyr::mutate(id = dplyr::cur_group_id()) |>
+      dplyr::ungroup() |> dplyr::select(-x,-y) |>
+      dplyr::mutate(area = dplyr::if_else(is.na(area), 0, area)) |> # Convert missing data to 0
+      dplyr::arrange(id, band)
+
+    # --- #
+    # Summarize
+    if(fun=="sum"){
+      results <- df |> dplyr::group_by(band) |> dplyr::summarise(suitability = sum(area, na.rm = TRUE))
+      results$unit <- "km2"
+    } else {
+      results <- df |> dplyr::group_by(band) |> dplyr::summarise(suitability = mean(area, na.rm = TRUE))
+      results$unit <- "fraction"
+    }
+
+    # Relative conversion if set
+    if(relative && nrow(results)>1){
+      relChange <- function(v, fac = 100) (((v-v[1]) / v[1]) * fac)
+      results$relative_change_perc <- relChange(results$suitability)
+      results$suitability <- results$suitability - results$suitability[1]
+    }
+
+    assertthat::assert_that(is.data.frame(results),
+                            nrow(results)>=1)
+    return(results)
+
+  }
+)

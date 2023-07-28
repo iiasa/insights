@@ -9,6 +9,8 @@ insights_fraction(range, lu, other, outfile = NULL)
 \S4method{insights_fraction}{SpatRaster,SpatRaster,SpatRaster,character}(range,lu,other,outfile)
 
 \S4method{insights_fraction}{ANY,SpatRaster,SpatRaster,character}(range,lu,other,outfile)
+
+\S4method{insights_fraction}{SpatRaster,stars,ANY,character}(range,lu,other,outfile)
 }
 \arguments{
 \item{range}{A \code{\link{SpatRaster}} or temporal \code{\link{stars}} object describing the estimated distribution of a
