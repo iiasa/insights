@@ -116,7 +116,7 @@ plot(out, col = c("grey90", "#FDE8A9", "#FBD35C", "#D1C34A", "#8EB65C",
 # Summarize
 insights_summary(out)
 #>   time suitability unit
-#> 1   NA    123158.4  km2
+#> 1   NA    119169.1  km2
 ```
 
 Of course it is also possible to directly supply a multi-dimensional
@@ -132,12 +132,12 @@ framework*. R package version 0.2.
 
 P. Visconti, M. Bakkenes, D. Baisero, T. Brooks, S.H.M. Butchart, L.
 Joppa, R. Alkemade, M. Di Marco, L. Santini, M. Hoffmann, C. Rondinini
-Projecting global biodiversity indicators under future development
-scenarios Conserv. Lett., 9 (2016), pp. 5-13
+*Projecting global biodiversity indicators under future development
+scenarios* Conserv. Lett., 9 (2016), pp. 5-13
 [DOI](https://doi.org/10.1111/conl.12159)
 
-C. Rondinini and P. Visconti, Scenarios of large mammal loss in Europe
-for the 21st century Conserv. Biol., 29 (2015), pp. 1028-1036
+C. Rondinini and P. Visconti, *Scenarios of large mammal loss in Europe
+for the 21st century* Conserv. Biol., 29 (2015), pp. 1028-1036
 [DOI](https://doi.org/10.1111/cobi.12532)
 
 ## Acknowledgement <a href="https://iiasa.ac.at"><img src="man/figures/IIASA_PNG_logo_blue.png" alt="IIASA" align="right" width="300"/></a>
