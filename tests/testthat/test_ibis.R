@@ -61,5 +61,76 @@ test_that('Train a ibis.iSDM model and apply inSights on it', {
   expect_equal(round(terra::global(out, "max", na.rm = TRUE)[,1],3),
                round(terra::global(out2, "max", na.rm = TRUE)[,1],3))
 
-  }
-)
+  })
+
+# Test that package works and data can be loaded
+test_that('Make a ibis.iSDM scenario projection and apply InSiGHTS on it', {
+
+  skip_if_not_installed("glmnet")
+  skip_if_not_installed("ibis.iSDM")
+
+  suppressWarnings( requireNamespace("terra", quietly = TRUE) )
+  suppressWarnings( requireNamespace("ibis.iSDM", quietly = TRUE) )
+  suppressWarnings( requireNamespace("glmnet", quietly = TRUE) )
+  suppressWarnings( requireNamespace("stars", quietly = TRUE) )
+  suppressPackageStartupMessages( require("glmnet"))
+  suppressPackageStartupMessages( require("terra"))
+  suppressPackageStartupMessages( require("stars"))
+  suppressPackageStartupMessages( require("ibis.iSDM"))
+
+  options("ibis.setupmessages" = FALSE)
+
+  # Load ibis test data
+  background <- terra::rast(system.file('extdata/europegrid_50km.tif', package='ibis.iSDM',mustWork = TRUE))
+  virtual_points <- sf::st_read(system.file('extdata/input_data.gpkg', package='ibis.iSDM'), 'points',quiet = TRUE)
+  ll <- list.files(system.file('extdata/predictors_presfuture/',package = "ibis.iSDM",mustWork = TRUE),
+                   full.names = T)
+  # Load the same files future ones
+  suppressWarnings(
+    pred_future <- stars::read_stars(ll) |> stars:::slice.stars('Time', seq(1, 86, by = 10))
+  )
+  sf::st_crs(pred_future) <- sf::st_crs(4326)
+
+  pred_current <- ibis.iSDM:::stars_to_raster(pred_future, 1)[[1]]
+  names(pred_current) <- names(pred_future)
+
+  ab <- ibis.iSDM::pseudoabs_settings(nrpoints = 1000,min_ratio = 1,method = "mcp")
+  suppressMessages(
+    virtual_points <- ibis.iSDM::add_pseudoabsence(virtual_points,field_occurrence = 'Observed',
+                                      template = background, settings = ab)
+  )
+
+  x <- ibis.iSDM::distribution(background) |>
+    ibis.iSDM::add_biodiversity_poipa(virtual_points,
+                                      field_occurrence = 'Observed', name = 'Virtual points') |>
+    ibis.iSDM::add_predictors(pred_current, transform = 'scale',derivates = "none") |>
+    ibis.iSDM::engine_glmnet()
+
+  modf <- ibis.iSDM::train(x, runname = 'Null', verbose = FALSE) |>
+    ibis.iSDM::threshold(method = 'percent',value = .3)
+
+  expect_length(modf$show_rasters(),2)
+  expect_true(ibis.iSDM::is.Raster(modf$get_data("prediction")))
+
+  # Now build a scenario
+  sc <- ibis.iSDM::scenario(modf) |>
+    ibis.iSDM::add_predictors(pred_future, transform = 'scale', derivates = "none") |>
+    ibis.iSDM::threshold() |>
+    ibis.iSDM::project()
+
+  expect_s3_class(sc, "BiodiversityScenario")
+
+  # --- #
+  # Now apply insights
+  lu <- pred_future |> stars:::select.stars(crops, secdf)
+  lu <- ibis.iSDM::predictor_transform(lu, "norm") |> round(2)
+  out <- insights_fraction(range = sc,
+                           lu = lu)
+
+  expect_s3_class(out, "stars")
+
+  # Summarize
+  o <- insights_summary(out)
+  expect_s3_class(o, "data.frame")
+
+})

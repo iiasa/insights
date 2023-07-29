@@ -1,6 +1,6 @@
 Package: insights
 Title: An R implementation of the InSiGHTS framework
-Version: 0.2
+Version: 0.3
 Year: 2023
 Authors@R: 
     person("Martin", "Jung", , "jung@iiasa.ac.at", role = c("aut", "cre"),

@@ -63,10 +63,7 @@ currently only available via github.
 library(ibis.iSDM)
 library(insights)
 library(glmnet)
-#> Loading required package: Matrix
-#> Loaded glmnet 4.1-7
 library(terra)
-#> terra 1.7.39
 ```
 
 Now we use the **ibis.iSDM** package to train a simple SDM and apply the
@@ -81,13 +78,27 @@ SpatRaster.
 # Load test data from ibis.iSDM package
 background <- terra::rast(system.file('extdata/europegrid_50km.tif', package='ibis.iSDM',mustWork = TRUE))
 virtual_points <- sf::st_read(system.file('extdata/input_data.gpkg', package='ibis.iSDM',mustWork = TRUE),'points',quiet = TRUE)
-ll <- list.files(system.file('extdata/predictors',package = 'ibis.iSDM',mustWork = TRUE),full.names = T)
-ll <- ll[grep("CLC",ll, invert = TRUE)]# Use only climatic predictors
-predictors <- terra::rast(ll);names(predictors) <- tools::file_path_sans_ext(basename(ll))
+# Get some future predictors
+ll <- list.files(system.file('extdata/predictors_presfuture/',package = "ibis.iSDM",mustWork = TRUE),
+                 full.names = T)
+# Load the same files future ones
+suppressWarnings(
+  pred_future <- stars::read_stars(ll) |> stars:::slice.stars('Time', seq(1, 86, by = 10))
+)
+sf::st_crs(pred_future) <- sf::st_crs(4326)
+
+# Get only climatic predictors and take the first time slot
+pred_climate <- pred_future |> stars:::select.stars(bio01, bio12)
+predictors <- ibis.iSDM:::stars_to_raster(pred_climate, 1)[[1]]
+
+# Add some pseudo-absence data
+virtual_points <- ibis.iSDM::add_pseudoabsence(virtual_points,
+                                               field_occurrence = 'Observed',
+                                               template = background)
 
 # Now train a small little model
 fit <- distribution(background) |> # Prediction domain
-  add_biodiversity_poipo(virtual_points) |> # Add presence-only point data
+  add_biodiversity_poipa(virtual_points) |> # Add presence-only point data
   add_predictors(predictors) |> # Add simple predictors
   engine_glmnet() |> # Use glmnet for estimation
   train(verbose = FALSE) |> # Train the model 
@@ -116,14 +127,43 @@ plot(out, col = c("grey90", "#FDE8A9", "#FBD35C", "#D1C34A", "#8EB65C",
 # Summarize
 insights_summary(out)
 #>   time suitability unit
-#> 1   NA    119169.1  km2
+#> 1   NA    265314.1  km2
 ```
 
 Of course it is also possible to directly supply a multi-dimensional
 gridded file using the *stars* package or directly through the ibis.iSDM
 scenario functionalities (see example below).
 
-*Example to be added*
+``` r
+
+# Create a future scenario
+sc <- scenario(fit) |>
+  add_predictors(env = pred_climate, transform = 'scale', derivates = "none") |>
+  threshold() |>
+  project()
+#> [32m[Setup] 2023-07-29 18:05:07 | Adding scenario predictors...[39m
+#> [32m[Setup] 2023-07-29 18:05:07 | Transforming predictors...[39m
+#> [32m[Scenario] 2023-07-29 18:05:08 | Starting suitability projections for 9 timesteps.[39m
+
+# --- #
+# Now apply insights using time series of future land use
+lu <- pred_future |> stars:::select.stars(primn, secdf)
+# Normalize for the sake of an example. Note that fractions are needed!
+lu <- ibis.iSDM::predictor_transform(lu, "norm") |> round(2) 
+out <- insights_fraction(range = sc,
+                         lu = lu)
+
+# Summarize
+o <- insights_summary(out)
+#> Linking to GEOS 3.9.3, GDAL 3.5.2, PROJ 8.2.1; sf_use_s2() is FALSE
+
+plot(o$suitability~o$band, type = "b",
+     main = "InSiGHTS index",
+     ylab = "Suitable habitat relative to 2015",
+     xlab = "Year")
+```
+
+<img src="man/figures/README-With scenario-1.png" width="100%" />
 
 ## Citations
 

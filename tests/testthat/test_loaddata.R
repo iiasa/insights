@@ -79,8 +79,7 @@ test_that('Load data and do InSiGHTS on single layer and summarize', {
   # Directly on the range should also work
   expect_no_error(insights_summary(range))
 
-  }
-)
+  })
 
 # Multiple time steps
 # This test ensures that the refinement works even when multiple layers are supplied.
@@ -140,8 +139,7 @@ test_that('Do InSiGHTS on multiple layers and summarize', {
 
   # Directly on the range should also work
   expect_no_error(insights_summary(range_ts))
-}
-)
+})
 
 # Multiple time steps
 # This test ensures that the refinement works even when multiple layers are supplied.
@@ -199,5 +197,4 @@ test_that('Do InSiGHTS on stars object', {
   # if those are single layers
   o <- ibis.iSDM:::st_reduce(obj = pred_future, names(pred_future),"suitability",fun = "sum")
   expect_no_error(insights_summary(o))
-}
-)
+})

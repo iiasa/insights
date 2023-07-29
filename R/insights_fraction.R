@@ -158,56 +158,6 @@ methods::setMethod(
   }
 )
 
-#### Implementation for ibis.iSDM predictions ####
-#' @name insights_fraction
-#' @rdname insights_fraction
-#' @usage \S4method{insights_fraction}{ANY,SpatRaster,SpatRaster,character}(range,lu,other,outfile)
-methods::setMethod(
-  "insights_fraction",
-  methods::signature(range = "ANY", lu = "SpatRaster"),
-  function(range, lu, other, outfile = NULL) {
-    assertthat::assert_that(
-      inherits(range, "DistributionModel"),
-      ibis.iSDM::is.Raster(lu),
-      missing(other) || ibis.iSDM::is.Raster(other),
-      is.null(outfile) || is.character(outfile)
-    )
-
-    # Check that layer has predictions
-    assertthat::assert_that(
-      length( range$show_rasters() ) >0,
-      msg = "Fitted model contains no predictions!"
-    )
-
-    # Check that fitted object has threshold
-    assertthat::assert_that(
-      !ibis.iSDM::is.Waiver(range$get_thresholdvalue()),
-      is.numeric(range$get_thresholdvalue()),
-      msg = "No thresholded raster was found!"
-    )
-
-    # Get thresholded raster and recall with SpatRaster object
-    if( any(grep('threshold', range$show_rasters())) ){
-      tr_lyr <- grep('threshold', range$show_rasters(),value = TRUE)
-      if(length(tr_lyr)>1) warning("There appear to be multiple thresholded layers. Using the first one.")
-      threshold <- range$get_data(tr_lyr[1])
-      # Get mean layer if there are multiple
-      if( grep("mean", names(threshold),value = TRUE ) != ""){
-        threshold <- threshold[[grep("mean", names(threshold),value = TRUE )]]
-      }
-
-      # Now call again insights
-      out <- insights_fraction(range = threshold,
-                               lu = lu,
-                               other = other,
-                               outfile = outfile)
-      return(out)
-    } else {
-      stop("No thresholded raster was found!")
-    }
-  }
-)
-
 #' @name insights_fraction
 #' @rdname insights_fraction
 #' @usage \S4method{insights_fraction}{SpatRaster,stars,ANY,character}(range,lu,other,outfile)
@@ -242,14 +192,19 @@ methods::setMethod(
     # Check that stars is correct
     assertthat::assert_that(length(lu)>=1,
                             length( stars::st_dimensions(lu) )>=3,
-                            "time" %in% names(stars::st_dimensions(lu)),
+                            any(c("Time","time") %in% names(stars::st_dimensions(lu))),
                             msg = "No dimension with name \"time\" found in land-use time series!")
+    dims <- stars::st_dimensions(lu)
+    names(dims)[3] <- "time"
+    stars::st_dimensions(lu) <- dims
     times <- stars::st_get_dimension_values(lu, "time")
 
     # --- #
     # For the processing:
     # Aggregate all variables together
-    lu <- ibis.iSDM:::st_reduce(lu, names(lu), newname = "suitability", fun = "sum")
+    if(length(lu)>1){
+      lu <- ibis.iSDM:::st_reduce(lu, names(lu), newname = "suitability", fun = "sum")
+    }
 
     # Then convert each time step to a SpatRaster and pass to insights_fraction
     proj <- terra::rast()
@@ -287,3 +242,180 @@ methods::setMethod(
     }
   }
 )
+
+#' @name insights_fraction
+#' @rdname insights_fraction
+#' @usage \S4method{insights_fraction}{stars,stars,ANY,character}(range,lu,other,outfile)
+methods::setMethod(
+  "insights_fraction",
+  methods::signature(range = "stars", lu = "stars"),
+  function(range, lu, other, outfile = NULL) {
+    assertthat::assert_that(
+      inherits(range, "stars"),
+      inherits(lu, "stars"),
+      missing(other) || (inherits(other, "stars") || ibis.iSDM::is.Raster(other)),
+      is.null(outfile) || is.character(outfile)
+    )
+
+    # Some check
+    assertthat::assert_that(
+      length(range)==1,
+      msg = "More than one layer in range found...?"
+    )
+
+    # Convert if needed
+    if(!missing(other)){
+      # In this case we recreate / warp the raster to dem
+      other <- stars::st_as_stars(other)
+      names(other) <- "other"
+      # Reproejct and rewarp
+      other <- other |> sf::st_transform(crs = sf::st_crs(range))
+
+      ibis.iSDM::myLog("[Reprojection]", "yellow", "Aligning other layers to range.")
+      grid <- other |> sf::st_bbox() |> stars::st_as_stars()
+      other <- other |>
+        stars::st_warp(grid, cellsize = stars::st_res(range),use_gdal = FALSE)
+    }
+
+    # Correct output file extension if necessary
+    if(!is.null(outfile)){
+      assertthat::assert_that(dir.exists(dirname(outfile)),
+                              msg = "Output file directory does not exist!")
+      # Correct output file name depending on type
+      if(inherits(lu, "stars") && tolower(tools::file_ext(outfile))!="nc"){
+        outfile <- paste0(outfile, ".nc")
+      }
+    }
+
+    # Aggregate all variables together
+    if(length(lu)>1){
+      lu <- ibis.iSDM:::st_reduce(lu, names(lu), newname = "suitability", fun = "sum")
+    }
+
+    # Check that stars is correct
+    assertthat::assert_that(length(lu)>=1,
+                            length( stars::st_dimensions(lu) )>=3,
+                            any(c("time", "Time") %in% names(stars::st_dimensions(lu))),
+                            msg = "No dimension with name \"time\" found in land-use time series!")
+    dims <- stars::st_dimensions(lu)
+    names(dims)[3] <- "time"
+    stars::st_dimensions(lu) <- dims
+    times <- stars::st_get_dimension_values(lu, "time")
+    # Check that time steps are identical to range
+    assertthat::assert_that(
+      length(stars::st_get_dimension_values(lu, "time")) ==
+        length(stars::st_get_dimension_values(range, "time")),
+      msg = "Number of time steps between range and land-use rasters is differring?"
+    )
+
+    # --- #
+    # Check that both sets of layers are comparable
+    dims1 <- stars::st_dimensions(range)
+    dims2 <- stars::st_dimensions(lu)
+    # If x or y differ, rewarp
+    if(all( range(stars::st_get_dimension_values(lu, 1)) != range(stars::st_get_dimension_values(range, 1)) )){
+      lu <- stars::st_warp(lu, range,
+                           cellsize = st_res(range),
+                           use_gdal = FALSE,
+                           method = "near")
+    }
+    # Reset dimensions
+    stars::st_dimensions(lu) <- stars::st_dimensions(range)
+    # --- #
+
+    # Multiply both fractional layers
+    proj <- range * lu
+    names(proj) <- "insights_suitability"
+    assertthat::assert_that(length(proj)==1)
+
+    # Return result or write respectively
+    if(is.null(outfile)){
+      return(proj)
+    } else {
+      stars::write_stars(proj, outfile)
+    }
+  }
+)
+
+
+#### Implementation for ibis.iSDM predictions and projections ####
+#' @name insights_fraction
+#' @rdname insights_fraction
+#' @usage \S4method{insights_fraction}{ANY,ANY,SpatRaster,character}(range,lu,other,outfile)
+methods::setMethod(
+  "insights_fraction",
+  methods::signature(range = "ANY", lu = "ANY"),
+  function(range, lu, other, outfile = NULL) {
+    assertthat::assert_that(
+      inherits(range, "DistributionModel") || inherits(range, "BiodiversityScenario"),
+      inherits(lu, "stars") || ibis.iSDM::is.Raster(lu),
+      missing(other) || ibis.iSDM::is.Raster(other),
+      is.null(outfile) || is.character(outfile)
+    )
+
+    # Correct output file extension if necessary
+    if(!is.null(outfile)){
+      assertthat::assert_that(dir.exists(dirname(outfile)),
+                              msg = "Output file directory does not exist!")
+      # Correct output file name depending on type
+      if(inherits(lu, "stars") && tolower(tools::file_ext(outfile))!="nc"){
+        outfile <- paste0(outfile, ".nc")
+      }
+    }
+
+    # Approach for fitted models
+    if(inherits(range, "DistributionModel")){
+      # Check that layer has predictions
+      assertthat::assert_that(
+        length( range$show_rasters() ) >0,
+        msg = "Fitted model contains no predictions!"
+      )
+
+      # Check that fitted object has threshold
+      assertthat::assert_that(
+        !ibis.iSDM::is.Waiver(range$get_thresholdvalue()),
+        is.numeric(range$get_thresholdvalue()),
+        msg = "No thresholded raster was found!"
+      )
+
+      # Get thresholded raster and recall with SpatRaster object
+      if( any(grep('threshold', range$show_rasters())) ){
+        tr_lyr <- grep('threshold', range$show_rasters(),value = TRUE)
+        if(length(tr_lyr)>1) warning("There appear to be multiple thresholded layers. Using the first one.")
+        threshold <- range$get_data(tr_lyr[1])
+        # Get mean layer if there are multiple
+        if( grep("mean", names(threshold),value = TRUE ) != ""){
+          threshold <- threshold[[grep("mean", names(threshold),value = TRUE )]]
+        }
+
+        # Now call again insights
+        out <- insights_fraction(range = threshold,
+                                 lu = lu,
+                                 other = other,
+                                 outfile = outfile)
+        return(out)
+      } else {
+        stop("No thresholded raster was found!")
+      }
+    } else {
+      # Scenario object assumed as input
+
+      # Get data
+      data <- range$get_data()
+      assertthat::assert_that(inherits(data,"stars"),
+                              msg = "No projection found!")
+      assertthat::assert_that("threshold" %in% names(data),
+                              msg = "No threshold in projection found!")
+      data <- data['threshold']
+
+      # Apply on stars
+      out <- insights_fraction(range = data,
+                               lu = lu,
+                               other = other,
+                               outfile = outfile
+                               )
+      return(out)
+    }
+  }
+)
+
