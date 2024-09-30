@@ -1,7 +1,7 @@
 Package: insights
 Title: An R implementation of the InSiGHTS framework
-Version: 0.3
-Year: 2023
+Version: 0.4
+Year: 2024
 Authors@R: 
     person("Martin", "Jung", , "jung@iiasa.ac.at", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-7569-1390"))
@@ -9,13 +9,14 @@ Description: The package provides an implementation of the InSiGHTS modelling fr
 License: CC BY 4.0
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Imports: 
     sf,
     terra,
     ibis.iSDM,
     stars,
     assertthat,
+    lubridate,
     tibble,
     dplyr
 Remotes: 

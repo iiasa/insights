@@ -1,17 +1,12 @@
 # Test that package works and data can be loaded
 test_that('Train a ibis.iSDM model and apply inSights on it', {
 
-  skip_if_not_installed("glmnet")
   skip_if_not_installed("ibis.iSDM")
 
   suppressWarnings( requireNamespace("terra", quietly = TRUE) )
   suppressWarnings( requireNamespace("ibis.iSDM", quietly = TRUE) )
-  suppressWarnings( requireNamespace("glmnet", quietly = TRUE) )
   suppressPackageStartupMessages(
     require("ibis.iSDM")
-  )
-  suppressPackageStartupMessages(
-    require("glmnet")
   )
 
   options("ibis.setupmessages" = FALSE)
@@ -32,15 +27,16 @@ test_that('Train a ibis.iSDM model and apply inSights on it', {
 
   # Now train a small little model
   fit <- ibis.iSDM::distribution(background) |>
-    ibis.iSDM::add_biodiversity_poipo(virtual_points) |>
+    ibis.iSDM::add_biodiversity_poipo(virtual_points,field_occurrence = "Observed") |>
     ibis.iSDM::add_predictors(predictors) |>
-    ibis.iSDM::engine_glmnet() |>
+    ibis.iSDM::engine_glm() |>
     ibis.iSDM::train() |>
     ibis.iSDM::threshold(method = "perc", value = .33)
 
   expect_s3_class(fit, "DistributionModel")
   tr <- fit$get_data("threshold_percentile")
   expect_s4_class(tr, "SpatRaster")
+  if(terra::nlyr(tr)>1) tr <- tr[[1]]
 
   # --- #
   # Now apply insights
@@ -61,22 +57,19 @@ test_that('Train a ibis.iSDM model and apply inSights on it', {
   expect_equal(round(terra::global(out, "max", na.rm = TRUE)[,1],3),
                round(terra::global(out2, "max", na.rm = TRUE)[,1],3))
 
-  })
+})
 
 # Test that package works and data can be loaded
 test_that('Make a ibis.iSDM scenario projection and apply InSiGHTS on it', {
 
-  skip_if_not_installed("glmnet")
   skip_if_not_installed("ibis.iSDM")
 
   suppressWarnings( requireNamespace("terra", quietly = TRUE) )
   suppressWarnings( requireNamespace("ibis.iSDM", quietly = TRUE) )
-  suppressWarnings( requireNamespace("glmnet", quietly = TRUE) )
   suppressWarnings( requireNamespace("stars", quietly = TRUE) )
-  suppressPackageStartupMessages( require("glmnet"))
-  suppressPackageStartupMessages( require("terra"))
-  suppressPackageStartupMessages( require("stars"))
-  suppressPackageStartupMessages( require("ibis.iSDM"))
+  suppressWarnings(
+    suppressPackageStartupMessages( require("ibis.iSDM"))
+  )
 
   options("ibis.setupmessages" = FALSE)
 
@@ -104,7 +97,7 @@ test_that('Make a ibis.iSDM scenario projection and apply InSiGHTS on it', {
     ibis.iSDM::add_biodiversity_poipa(virtual_points,
                                       field_occurrence = 'Observed', name = 'Virtual points') |>
     ibis.iSDM::add_predictors(pred_current, transform = 'scale',derivates = "none") |>
-    ibis.iSDM::engine_glmnet()
+    ibis.iSDM::engine_glm()
 
   modf <- ibis.iSDM::train(x, runname = 'Null', verbose = FALSE) |>
     ibis.iSDM::threshold(method = 'percent',value = .3)
@@ -132,5 +125,4 @@ test_that('Make a ibis.iSDM scenario projection and apply InSiGHTS on it', {
   # Summarize
   o <- insights_summary(out)
   expect_s3_class(o, "data.frame")
-
 })

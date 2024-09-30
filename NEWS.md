@@ -1,3 +1,7 @@
+# InSiGHTS 0.4
+
+* Bug fixes and more support for future clipping when `stars` is provided.
+
 # InSiGHTS 0.3
 
 * Full ibis.iSDM scenario support

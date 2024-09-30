@@ -12,6 +12,8 @@ insights_fraction(range, lu, other, outfile = NULL)
 
 \S4method{insights_fraction}{stars,stars,ANY,character}(range,lu,other,outfile)
 
+\S4method{insights_fraction}{stars,stars,ANY,character}(range,lu,other,outfile)
+
 \S4method{insights_fraction}{ANY,ANY,SpatRaster,character}(range,lu,other,outfile)
 }
 \arguments{
@@ -38,6 +40,16 @@ provided climatic niche.
 It is assumed that the land-use layers come in fractional units, so are ranging from \code{0} to \code{1}.
 Optionally also a elevation (\code{elev}) layer and habitat condition (\code{condition}) can be provided to support refinements
 by elevational range or habitat condition.
+}
+\note{
+This function does not do the refinement of land-use fraction to relevant habitats.
+This needs to be done by the analyst a-priori.
+}
+\examples{
+\dontrun{
+ out <- insights_fraction(range, landuse)
+}
+
 }
 \references{
 \itemize{

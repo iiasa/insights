@@ -9,6 +9,9 @@
 #' Optionally also a elevation (\code{elev}) layer and habitat condition (\code{condition}) can be provided to support refinements
 #' by elevational range or habitat condition.
 #'
+#' @note
+#' This function does not do the refinement of land-use fraction to relevant habitats.
+#' This needs to be done by the analyst a-priori.
 #' @param range A [`SpatRaster`] or temporal [`stars`] object describing the estimated distribution of a
 #' biodiversity feature (e.g. species). **Has to be in binary format!**
 #' Alternatively a \code{DistributionModel} fitted with \code{ibis.iSDM} package can be supplied.
@@ -21,6 +24,11 @@
 #' @author Martin Jung
 #' @importClassesFrom terra SpatRaster
 #' @importFrom ibis.iSDM is.Raster
+#' @examples
+#' \dontrun{
+#'  out <- insights_fraction(range, landuse)
+#' }
+#'
 #' @references
 #' * Rondinini, Carlo, and Piero Visconti. "Scenarios of large mammal loss in Europe for the 21st century." Conservation Biology 29, no. 4 (2015): 1028-1036.
 #' * Visconti, Piero, Michel Bakkenes, Daniele Baisero, Thomas Brooks, Stuart HM Butchart, Lucas Joppa, Rob Alkemade et al. "Projecting global biodiversity indicators under future development scenarios." Conservation Letters 9, no. 1 (2016): 5-13.
@@ -55,8 +63,8 @@ methods::setMethod(
     rr <- terra::global(range,"range",na.rm=TRUE)
     assertthat::assert_that(all(rr[["min"]]>=0 ),
                             all(rr[["max"]]<=1 ),
-                            all(apply(terra::unique(range), 2, function(z) length(which(!is.nan(unique(z))))) <= 2),
-                            msg = "Input range has to be in binary format!"
+                            # all(apply(terra::unique(range), 2, function(z) length(which(!is.nan(unique(z))))) <= 2),
+                            msg = "Input range has to be in binary or fractional format!"
                             )
     rm(rr)
     assertthat::assert_that(
@@ -76,11 +84,11 @@ methods::setMethod(
     if(ibis.iSDM::is.Raster(lu) && ibis.iSDM::is.Raster(range)){
       if(!(terra::same.crs(range, lu) && terra::compareGeom(range, lu, stopOnError = FALSE))){
         if(!terra::same.crs(range, lu)){
-          ibis.iSDM::myLog("Preparation", "yellow", "Reprojecting land-use layer to range crs.")
+          ibis.iSDM:::myLog("Preparation", "yellow", "Reprojecting land-use layer to range crs.")
           lu <- terra::project(lu, terra::crs(range))
         }
         if(!terra::compareGeom(range, lu, stopOnError = FALSE)){
-          ibis.iSDM::myLog("Preparation", "yellow", "Cropping and resampling land-use layer(s) to range.")
+          ibis.iSDM:::myLog("Preparation", "yellow", "Cropping and resampling land-use layer(s) to range.")
           lu <- terra::crop(lu, range)
           lu <- terra::resample(lu, range, method = "average", threads = TRUE)
         }
@@ -101,11 +109,11 @@ methods::setMethod(
 
       if(!(terra::same.crs(range, other) && terra::compareGeom(range, other, stopOnError = FALSE))){
         if(!terra::same.crs(range, other)){
-          ibis.iSDM::myLog("Preparation", "yellow", "Reprojecting other layers to range crs.")
+          ibis.iSDM:::myLog("Preparation", "yellow", "Reprojecting other layers to range crs.")
           other <- terra::project(other, terra::crs(range))
         }
         if(!terra::compareGeom(range, other, stopOnError = FALSE)){
-          ibis.iSDM::myLog("Preparation", "yellow", "Cropping and resampling other layer(s) to range.")
+          ibis.iSDM:::myLog("Preparation", "yellow", "Cropping and resampling other layer(s) to range.")
           other <- terra::crop(other, range)
           other <- terra::resample(other, range, method = "average", threads = TRUE)
         }
@@ -227,7 +235,7 @@ methods::setMethod(
     proj <- stars::st_as_stars(proj,
                                crs = sf::st_crs(range)
     )
-    names(proj)
+
     # Reset time dimension for consistency
     dims <- stars::st_dimensions(proj)
     names(dims)[3] <- "time"
@@ -271,7 +279,7 @@ methods::setMethod(
       # Reproejct and rewarp
       other <- other |> sf::st_transform(crs = sf::st_crs(range))
 
-      ibis.iSDM::myLog("[Reprojection]", "yellow", "Aligning other layers to range.")
+      ibis.iSDM:::myLog("[Reprojection]", "yellow", "Aligning other layers to range.")
       grid <- other |> sf::st_bbox() |> stars::st_as_stars()
       other <- other |>
         stars::st_warp(grid, cellsize = stars::st_res(range),use_gdal = FALSE)
@@ -337,6 +345,100 @@ methods::setMethod(
   }
 )
 
+#' @name insights_fraction
+#' @rdname insights_fraction
+#' @usage \S4method{insights_fraction}{stars,stars,ANY,character}(range,lu,other,outfile)
+methods::setMethod(
+  "insights_fraction",
+  methods::signature(range = "stars", lu = "SpatRaster"),
+  function(range, lu, other, outfile = NULL) {
+    assertthat::assert_that(
+      inherits(range, "stars"),
+      ibis.iSDM::is.Raster(lu),
+      missing(other) || (inherits(other, "stars") || ibis.iSDM::is.Raster(other)),
+      is.null(outfile) || is.character(outfile)
+    )
+
+    # Some check
+    assertthat::assert_that(
+      length(range)==1,
+      msg = "More than one layer in range found...?"
+    )
+
+    # Convert if needed
+    if(!missing(other)){
+      # In this case we recreate / warp the raster to dem
+      other <- stars::st_as_stars(other)
+      names(other) <- "other"
+      # Reproject and rewarp
+      other <- other |> sf::st_transform(crs = sf::st_crs(range))
+
+      ibis.iSDM:::myLog("[Reprojection]", "yellow", "Aligning other layers to range.")
+      grid <- other |> sf::st_bbox() |> stars::st_as_stars()
+      other <- other |>
+        stars::st_warp(grid, cellsize = stars::st_res(range),use_gdal = FALSE)
+    }
+
+    # Correct output file extension if necessary
+    if(!is.null(outfile)){
+      assertthat::assert_that(dir.exists(dirname(outfile)),
+                              msg = "Output file directory does not exist!")
+      # Correct output file name depending on type
+      if((inherits(lu, "stars") || ibis.iSDM:::is.Raster(lu))
+         && tolower(tools::file_ext(outfile))!="nc"){
+        outfile <- paste0(outfile, ".nc")
+      }
+    }
+
+    # SpatRaster assumed, sum if too many
+    if(terra::nlyr(lu)>1){
+      lu <- terra::app(lu, 'sum', na.rm = TRUE)
+    }
+
+    # Get dimensions from range
+    times <- stars::st_get_dimension_values(range, 3)
+    assertthat::assert_that(
+      is.numeric(times) || lubridate::is.Date(times) || lubridate::is.POSIXct(times)
+    )
+
+    # --- #
+    # Then convert each time step to a SpatRaster and pass to insights_fraction
+    proj <- terra::rast()
+    for(tt in 1:length(unique(times))){
+      # Make a slice
+      s <- range |> stars:::slice.stars('time', tt)
+      # Convert to raster
+      s <- terra::rast(s)
+      assertthat::assert_that(terra::global(s, "max", na.rm = TRUE)[,1] <=1,
+                              msg = "Values in range larger than 1 found?")
+      o <- insights_fraction(range = s,
+                             lu = lu,
+                             # other = other,
+                             outfile = NULL)
+      suppressWarnings(
+        proj <- c(proj, o)
+      )
+    }
+    # Finally convert to stars and rename
+    proj <- stars::st_as_stars(proj,
+                               crs = sf::st_crs(range)
+    )
+
+    # Reset time dimension for consistency
+    dims <- stars::st_dimensions(proj)
+    names(dims)[3] <- "time"
+    dims$time <- stars::st_dimensions(range)[[3]]
+    stars::st_dimensions(proj) <- dims
+
+    # Return result or write respectively
+    if(is.null(outfile)){
+      return(proj)
+    } else {
+      assertthat::assert_that(inherits(proj, "stars"))
+      stars::write_stars(proj, outfile)
+    }
+  }
+)
 
 #### Implementation for ibis.iSDM predictions and projections ####
 #' @name insights_fraction

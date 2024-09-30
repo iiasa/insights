@@ -79,7 +79,7 @@ test_that('Load data and do InSiGHTS on single layer and summarize', {
   # Directly on the range should also work
   expect_no_error(insights_summary(range))
 
-  })
+})
 
 # Multiple time steps
 # This test ensures that the refinement works even when multiple layers are supplied.
