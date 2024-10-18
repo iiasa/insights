@@ -63,6 +63,7 @@ test_that('Train a ibis.iSDM model and apply inSights on it', {
 test_that('Make a ibis.iSDM scenario projection and apply InSiGHTS on it', {
 
   skip_if_not_installed("ibis.iSDM")
+  skip_on_cran()
 
   suppressWarnings( requireNamespace("terra", quietly = TRUE) )
   suppressWarnings( requireNamespace("ibis.iSDM", quietly = TRUE) )
