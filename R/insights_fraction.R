@@ -20,6 +20,8 @@
 #' @param other Any other [`SpatRaster`] or temporal [`stars`] objects that describe suitable conditions for the species.
 #' @param outfile A writeable [`character`] of where the output should be written to. If missing, the the function will return
 #' a [`SpatRaster`] or [`stars`] object respectively.
+#' @param clamp A [`logical`] on whether lu should be clamped to 0 and 1 beforehand (Default: \code{FALSE}).
+#'
 #' @returns Either a [`SpatRaster`] or temporal [`stars`] object or nothing if outputs are written directly to drive.
 #' @author Martin Jung
 #' @importClassesFrom terra SpatRaster
@@ -43,22 +45,24 @@ NULL
 methods::setGeneric(
   "insights_fraction",
   signature = methods::signature("range", "lu"),
-  function(range, lu, other, outfile = NULL) standardGeneric("insights_fraction"))
+  function(range, lu, other, outfile = NULL, clamp = FALSE) standardGeneric("insights_fraction"))
 
 #' @name insights_fraction
 #' @rdname insights_fraction
-#' @usage \S4method{insights_fraction}{SpatRaster,SpatRaster,SpatRaster,character}(range,lu,other,outfile)
+#' @usage \S4method{insights_fraction}{SpatRaster,SpatRaster,SpatRaster,character,logical}(range,lu,other,outfile,clamp)
 methods::setMethod(
   "insights_fraction",
   methods::signature(range = "SpatRaster", lu = "SpatRaster"),
-  function(range, lu, other, outfile = NULL) {
+  function(range, lu, other, outfile = NULL, clamp = FALSE) {
     assertthat::assert_that(
       ibis.iSDM::is.Raster(range),
       ibis.iSDM::is.Raster(lu),
       missing(other) || ibis.iSDM::is.Raster(other),
-      is.null(outfile) || is.character(outfile)
+      is.null(outfile) || is.character(outfile),
+      is.logical(clamp)
     )
     # --- #
+
     # Check inputs
     rr <- terra::global(range,"range",na.rm=TRUE)
     assertthat::assert_that(all(rr[["min"]]>=0 ),
@@ -71,6 +75,9 @@ methods::setMethod(
       !is.na(terra::crs(range)),
       msg = "Range has unspecified projection!"
     )
+
+    # If clamp is true, bound lu shares to 0 to 1
+    if(clamp) lu <- st_clamp(lu, lb = 0, ub = 1)
 
     # Check raster stack
     rr <- terra::global(lu,"range",na.rm=TRUE)
@@ -168,16 +175,17 @@ methods::setMethod(
 
 #' @name insights_fraction
 #' @rdname insights_fraction
-#' @usage \S4method{insights_fraction}{SpatRaster,stars,ANY,character}(range,lu,other,outfile)
+#' @usage \S4method{insights_fraction}{SpatRaster,stars,ANY,character,logical}(range,lu,other,outfile,clamp)
 methods::setMethod(
   "insights_fraction",
   methods::signature(range = "SpatRaster", lu = "stars"),
-  function(range, lu, other, outfile = NULL) {
+  function(range, lu, other, outfile = NULL, clamp = FALSE) {
     assertthat::assert_that(
       ibis.iSDM::is.Raster(range),
       inherits(lu, "stars"),
       missing(other) || (inherits(other, "stars") || ibis.iSDM::is.Raster(other)),
-      is.null(outfile) || is.character(outfile)
+      is.null(outfile) || is.character(outfile),
+      is.logical(clamp)
     )
 
     # Convert if needed
@@ -213,6 +221,9 @@ methods::setMethod(
     if(length(lu)>1){
       lu <- ibis.iSDM:::st_reduce(lu, names(lu), newname = "suitability", fun = "sum")
     }
+
+    # If clamp is true, bound lu shares to 0 to 1
+    if(clamp) lu <- st_clamp(lu, lb = 0, ub = 1)
 
     # Then convert each time step to a SpatRaster and pass to insights_fraction
     proj <- terra::rast()
@@ -253,16 +264,17 @@ methods::setMethod(
 
 #' @name insights_fraction
 #' @rdname insights_fraction
-#' @usage \S4method{insights_fraction}{stars,stars,ANY,character}(range,lu,other,outfile)
+#' @usage \S4method{insights_fraction}{stars,stars,ANY,character,logical}(range,lu,other,outfile,clamp)
 methods::setMethod(
   "insights_fraction",
   methods::signature(range = "stars", lu = "stars"),
-  function(range, lu, other, outfile = NULL) {
+  function(range, lu, other, outfile = NULL, clamp = FALSE) {
     assertthat::assert_that(
       inherits(range, "stars"),
       inherits(lu, "stars"),
       missing(other) || (inherits(other, "stars") || ibis.iSDM::is.Raster(other)),
-      is.null(outfile) || is.character(outfile)
+      is.null(outfile) || is.character(outfile),
+      is.logical(clamp)
     )
 
     # Some check
@@ -299,6 +311,9 @@ methods::setMethod(
     if(length(lu)>1){
       lu <- ibis.iSDM:::st_reduce(lu, names(lu), newname = "suitability", fun = "sum")
     }
+
+    # If clamp is true, bound lu shares to 0 to 1
+    if(clamp) lu <- st_clamp(lu, lb = 0, ub = 1)
 
     # Check that stars is correct
     assertthat::assert_that(length(lu)>=1,
@@ -347,16 +362,17 @@ methods::setMethod(
 
 #' @name insights_fraction
 #' @rdname insights_fraction
-#' @usage \S4method{insights_fraction}{stars,stars,ANY,character}(range,lu,other,outfile)
+#' @usage \S4method{insights_fraction}{stars,stars,ANY,character,logical}(range,lu,other,outfile,clamp)
 methods::setMethod(
   "insights_fraction",
   methods::signature(range = "stars", lu = "SpatRaster"),
-  function(range, lu, other, outfile = NULL) {
+  function(range, lu, other, outfile = NULL, clamp = FALSE) {
     assertthat::assert_that(
       inherits(range, "stars"),
       ibis.iSDM::is.Raster(lu),
       missing(other) || (inherits(other, "stars") || ibis.iSDM::is.Raster(other)),
-      is.null(outfile) || is.character(outfile)
+      is.null(outfile) || is.character(outfile),
+      is.logical(clamp)
     )
 
     # Some check
@@ -394,6 +410,9 @@ methods::setMethod(
     if(terra::nlyr(lu)>1){
       lu <- terra::app(lu, 'sum', na.rm = TRUE)
     }
+
+    # If clamp is true, bound lu shares to 0 to 1
+    if(clamp) lu <- st_clamp(lu, lb = 0, ub = 1)
 
     # Get dimensions from range
     times <- stars::st_get_dimension_values(range, 3)
@@ -443,16 +462,17 @@ methods::setMethod(
 #### Implementation for ibis.iSDM predictions and projections ####
 #' @name insights_fraction
 #' @rdname insights_fraction
-#' @usage \S4method{insights_fraction}{ANY,ANY,SpatRaster,character}(range,lu,other,outfile)
+#' @usage \S4method{insights_fraction}{ANY,ANY,SpatRaster,character,logical}(range,lu,other,outfile,clamp)
 methods::setMethod(
   "insights_fraction",
   methods::signature(range = "ANY", lu = "ANY"),
-  function(range, lu, other, outfile = NULL) {
+  function(range, lu, other, outfile = NULL, clamp = FALSE) {
     assertthat::assert_that(
       inherits(range, "DistributionModel") || inherits(range, "BiodiversityScenario"),
       inherits(lu, "stars") || ibis.iSDM::is.Raster(lu),
       missing(other) || ibis.iSDM::is.Raster(other),
-      is.null(outfile) || is.character(outfile)
+      is.null(outfile) || is.character(outfile),
+      is.logical(clamp)
     )
 
     # Correct output file extension if necessary
@@ -494,7 +514,8 @@ methods::setMethod(
         out <- insights_fraction(range = threshold,
                                  lu = lu,
                                  other = other,
-                                 outfile = outfile)
+                                 outfile = outfile,
+                                 clamp = clamp)
         return(out)
       } else {
         stop("No thresholded raster was found!")

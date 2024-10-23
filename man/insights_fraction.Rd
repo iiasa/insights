@@ -4,17 +4,17 @@
 \alias{insights_fraction}
 \title{Apply InSiGHTS with fractional land use data}
 \usage{
-insights_fraction(range, lu, other, outfile = NULL)
+insights_fraction(range, lu, other, outfile = NULL, clamp = FALSE)
 
-\S4method{insights_fraction}{SpatRaster,SpatRaster,SpatRaster,character}(range,lu,other,outfile)
+\S4method{insights_fraction}{SpatRaster,SpatRaster,SpatRaster,character,logical}(range,lu,other,outfile,clamp)
 
-\S4method{insights_fraction}{SpatRaster,stars,ANY,character}(range,lu,other,outfile)
+\S4method{insights_fraction}{SpatRaster,stars,ANY,character,logical}(range,lu,other,outfile,clamp)
 
-\S4method{insights_fraction}{stars,stars,ANY,character}(range,lu,other,outfile)
+\S4method{insights_fraction}{stars,stars,ANY,character,logical}(range,lu,other,outfile,clamp)
 
-\S4method{insights_fraction}{stars,stars,ANY,character}(range,lu,other,outfile)
+\S4method{insights_fraction}{stars,stars,ANY,character,logical}(range,lu,other,outfile,clamp)
 
-\S4method{insights_fraction}{ANY,ANY,SpatRaster,character}(range,lu,other,outfile)
+\S4method{insights_fraction}{ANY,ANY,SpatRaster,character,logical}(range,lu,other,outfile,clamp)
 }
 \arguments{
 \item{range}{A \code{\link{SpatRaster}} or temporal \code{\link{stars}} object describing the estimated distribution of a
@@ -28,6 +28,8 @@ Alternatively a \code{DistributionModel} fitted with \code{ibis.iSDM} package ca
 
 \item{outfile}{A writeable \code{\link{character}} of where the output should be written to. If missing, the the function will return
 a \code{\link{SpatRaster}} or \code{\link{stars}} object respectively.}
+
+\item{clamp}{A \code{\link{logical}} on whether lu should be clamped to 0 and 1 beforehand (Default: \code{FALSE}).}
 }
 \value{
 Either a \code{\link{SpatRaster}} or temporal \code{\link{stars}} object or nothing if outputs are written directly to drive.
