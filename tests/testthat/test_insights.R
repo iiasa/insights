@@ -64,7 +64,9 @@ test_that('Directly apply InSiGHTS on rasters and stars', {
 
   # Normalize here
   lu <- lu |> stars:::select.stars(crops, secdf)
-  lu <- ibis.iSDM::predictor_transform(lu, "norm") |> round(2)
+  suppressMessages(
+    lu <- ibis.iSDM::predictor_transform(lu, "norm") |> round(2)
+  )
 
   # range = future | lu = future
   expect_no_error(

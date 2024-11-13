@@ -68,6 +68,7 @@ test_that('Make a ibis.iSDM scenario projection and apply InSiGHTS on it', {
   suppressWarnings( requireNamespace("terra", quietly = TRUE) )
   suppressWarnings( requireNamespace("ibis.iSDM", quietly = TRUE) )
   suppressWarnings( requireNamespace("stars", quietly = TRUE) )
+  suppressWarnings( requireNamespace("lwgeom", quietly = TRUE) )
   suppressWarnings(
     suppressPackageStartupMessages( require("ibis.iSDM"))
   )
@@ -124,6 +125,12 @@ test_that('Make a ibis.iSDM scenario projection and apply InSiGHTS on it', {
   expect_s3_class(out, "stars")
 
   # Summarize
-  o <- insights_summary(out)
+  suppressPackageStartupMessages(
+    suppressMessages(
+      o <- insights_summary(out)
+    )
+  )
+  expect_s3_class(o, "data.frame")
+  o <- insights_summary(out,toArea = TRUE,relative = TRUE)
   expect_s3_class(o, "data.frame")
 })
