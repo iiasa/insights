@@ -1,6 +1,7 @@
 # InSiGHTS 0.6
 
-* Addition of `insights_area()` for lu layers that are not fractions.
+* Addition of `insights_area()` for land use layers that are not fractions.
+* Support for flexible summary functions in `insights_summary()`.
 
 # InSiGHTS 0.5
 

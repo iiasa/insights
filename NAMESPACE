@@ -3,6 +3,7 @@
 export(insights_area)
 export(insights_fraction)
 export(insights_summary)
+export(relChange)
 exportMethods(insights_area)
 exportMethods(insights_fraction)
 exportMethods(insights_summary)

@@ -4,19 +4,21 @@
 \alias{insights_summary}
 \title{Summarize inSiGHTS into an index}
 \usage{
-insights_summary(obj, toArea = TRUE, relative = TRUE)
+insights_summary(obj, toArea = TRUE, fun = "sum", relative = TRUE)
 
-\S4method{insights_summary}{SpatRaster,logical,logical}(obj,toArea,relative)
+\S4method{insights_summary}{SpatRaster,logical,character,logical}(obj,toArea,fun,relative)
 
-\S4method{insights_summary}{stars,logical,logical}(obj,toArea,relative)
+\S4method{insights_summary}{stars,logical,character,logical}(obj,toArea,fun,relative)
 }
 \arguments{
 \item{obj}{A \code{\link{SpatRaster}} or temporal \code{\link{stars}} object describing with the
 applied InSiGHTS outputs from \code{insights_fraction}. If the number of layers is greater
 than 1, the parameter \code{"relative"} mgiht be applied.}
 
-\item{toArea}{A \code{\link{logical}} flag whether the suitable habitat should be summarized to area (Default: \code{TRUE})?
-Note: If this parameter is set to \code{FALSE}, the suitable habitat is summarized through a \code{"mean"}.}
+\item{toArea}{A \code{\link{logical}} flag whether the suitable habitat should be summarized to area (Default: \code{TRUE})?}
+
+\item{fun}{A \code{\link{character}} indicating the summary function to be applied (Default: \code{'sum'}).
+Currently supported are \code{'sum'}, \code{'min'}, \code{'max'}, \code{'median'} and \code{'mean'}.}
 
 \item{relative}{A \code{\link{logical}} flag whether a relative index is to be constructed (Default: \code{TRUE}).}
 }

@@ -9,7 +9,8 @@
 #' applied InSiGHTS outputs from \code{insights_fraction}. If the number of layers is greater
 #' than 1, the parameter \code{"relative"} mgiht be applied.
 #' @param toArea A [`logical`] flag whether the suitable habitat should be summarized to area (Default: \code{TRUE})?
-#' Note: If this parameter is set to \code{FALSE}, the suitable habitat is summarized through a \code{"mean"}.
+#' @param fun A [`character`] indicating the summary function to be applied (Default: \code{'sum'}).
+#' Currently supported are \code{'sum'}, \code{'min'}, \code{'max'}, \code{'median'} and \code{'mean'}.
 #' @param relative A [`logical`] flag whether a relative index is to be constructed (Default: \code{TRUE}).
 #' @returns A [`data.frame`] with area estimates or the respective indicator.
 #' @author Martin Jung
@@ -27,20 +28,24 @@ NULL
 methods::setGeneric(
   "insights_summary",
   signature = methods::signature("obj"),
-  function(obj, toArea = TRUE, relative = TRUE) standardGeneric("insights_summary"))
+  function(obj, toArea = TRUE, fun = 'sum', relative = TRUE) standardGeneric("insights_summary"))
 
 #' @name insights_summary
 #' @rdname insights_summary
-#' @usage \S4method{insights_summary}{SpatRaster,logical,logical}(obj,toArea,relative)
+#' @usage \S4method{insights_summary}{SpatRaster,logical,character,logical}(obj,toArea,fun,relative)
 methods::setMethod(
   "insights_summary",
   methods::signature(obj = "SpatRaster"),
-  function(obj, toArea = TRUE, relative = TRUE) {
+  function(obj, toArea = TRUE, fun = 'sum', relative = TRUE) {
     assertthat::assert_that(
       ibis.iSDM::is.Raster(obj),
       is.logical(toArea),
+      is.character(fun),
       is.logical(relative)
     )
+
+    # Match summary function
+    fun <- match.arg(fun, c('sum', 'min', 'max', 'mean', 'median'), several.ok = FALSE)
 
     # Some basic checks
     rr <- terra::global(obj,"range",na.rm=TRUE)
@@ -55,9 +60,9 @@ methods::setMethod(
       # Calculate the area size in km2
       ar <- terra::cellSize(obj, unit = "km")
       obj <- obj * ar
-      fun <- "sum"
+      unit <- "km2"
     } else {
-      fun <- "mean"
+      unit <- "input"
     }
 
     # --- #
@@ -66,7 +71,7 @@ methods::setMethod(
       time = terra::time(obj),
       suitability = terra::global(obj, fun, na.rm = TRUE)[,1]
     )
-    if(fun=="sum") results$unit <- "km2" else results$unit <- "fraction"
+    results$unit <- unit
 
     # Relative conversion if set
     if(relative && nrow(results)>1){
@@ -83,16 +88,20 @@ methods::setMethod(
 
 #' @name insights_summary
 #' @rdname insights_summary
-#' @usage \S4method{insights_summary}{stars,logical,logical}(obj,toArea,relative)
+#' @usage \S4method{insights_summary}{stars,logical,character,logical}(obj,toArea,fun,relative)
 methods::setMethod(
   "insights_summary",
   methods::signature(obj = "stars"),
-  function(obj, toArea = TRUE, relative = TRUE) {
+  function(obj, toArea = TRUE, fun = 'sum', relative = TRUE) {
     assertthat::assert_that(
       inherits(obj, "stars"),
       is.logical(toArea),
+      is.character(fun),
       is.logical(relative)
     )
+
+    # Match summary function
+    fun <- match.arg(fun, c('sum', 'min', 'max', 'mean', 'median'), several.ok = FALSE)
 
     # Basic checks on input
     assertthat::assert_that(length(obj)==1,
@@ -115,14 +124,12 @@ methods::setMethod(
       if(ar_unit == "m2"){
         new <- new / 1e6
         ar_unit <- "km2"
-      }
+      } else {ar_unit <- "km2"}
       terra::time(new) <- time
-      fun <- "sum"
     } else {
       new <- (obj |> terra::rast())
-      ar_unit <- "fraction"
+      ar_unit <- "input"
       terra::time(new) <- time
-      fun <- "mean"
     }
     assertthat::assert_that(ibis.iSDM::is.Raster(new))
     names(new) <- rep(names(obj), terra::nlyr(new))
@@ -141,17 +148,16 @@ methods::setMethod(
 
     # --- #
     # Summarize
-    if(fun=="sum"){
-      results <- df |> dplyr::group_by(band) |> dplyr::summarise(suitability = sum(area, na.rm = TRUE))
-      results$unit <- "km2"
-    } else {
-      results <- df |> dplyr::group_by(band) |> dplyr::summarise(suitability = mean(area, na.rm = TRUE))
-      results$unit <- "fraction"
-    }
+    func <- switch (fun,
+      "sum" = sum,
+      "min" = min, "max" = max,
+      "mean" = mean, "median" = median
+    )
+    results <- df |> dplyr::group_by(band) |> dplyr::summarise(suitability = func(area, na.rm = TRUE))
+    results$unit <- ar_unit
 
     # Relative conversion if set
     if(relative && nrow(results)>1){
-      relChange <- function(v, fac = 100) (((v-v[1]) / v[1]) * fac)
       results$relative_change_perc <- relChange(results$suitability)
       results$suitability <- results$suitability - results$suitability[1]
     }
